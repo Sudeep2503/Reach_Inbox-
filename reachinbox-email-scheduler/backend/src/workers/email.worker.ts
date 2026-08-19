@@ -151,7 +151,7 @@ export function createEmailWorker() {
               scheduledAt: retryAt,
               nextAttemptAt: retryAt,
               rateLimitReschedules: { increment: 1 },
-              bullJobId: `email:${emailJobId}:v${newVersion}`,
+              bullJobId: `email-${emailJobId}-v${newVersion}`,
             },
           });
 
@@ -175,7 +175,7 @@ export function createEmailWorker() {
                   scheduleVersion: newVersion,
                 },
                 {
-                  jobId: `email:${emailJobId}:v${newVersion}`,
+                  jobId: `email-${emailJobId}-v${newVersion}`,
                   delay: delayMs,
                   attempts: env.BULLMQ_JOB_ATTEMPTS,
                   backoff: {

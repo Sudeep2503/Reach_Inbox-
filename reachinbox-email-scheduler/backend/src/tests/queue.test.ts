@@ -89,7 +89,7 @@ describe('BullMQ Queue & Worker Architecture Tests', () => {
       },
     });
 
-    const expectedJobId = `email:${emailJob.id}`;
+    const expectedJobId = `email-${emailJob.id}`;
     const result = await emailSchedulerService.scheduleEmailJob(emailJob.id);
 
     expect(result.success).toBe(true);
@@ -125,7 +125,7 @@ describe('BullMQ Queue & Worker Architecture Tests', () => {
       },
     });
 
-    const jobId = `email:${emailJob.id}`;
+    const jobId = `email-${emailJob.id}`;
     await emailSchedulerService.scheduleEmailJob(emailJob.id);
 
     const bullJob = await emailQueue.getJob(jobId);
@@ -158,7 +158,7 @@ describe('BullMQ Queue & Worker Architecture Tests', () => {
       },
     });
 
-    const jobId = `email:${emailJob.id}`;
+    const jobId = `email-${emailJob.id}`;
     await emailSchedulerService.scheduleEmailJob(emailJob.id);
 
     const bullJob = await emailQueue.getJob(jobId);
@@ -225,7 +225,7 @@ describe('BullMQ Queue & Worker Architecture Tests', () => {
       },
     });
 
-    const jobId = `email:${emailJob.id}`;
+    const jobId = `email-${emailJob.id}`;
     await emailSchedulerService.scheduleEmailJob(emailJob.id);
 
     const bullJob = await emailQueue.getJob(jobId);
@@ -236,6 +236,7 @@ describe('BullMQ Queue & Worker Architecture Tests', () => {
       emailJobId: emailJob.id,
       campaignId: campaign.id,
       senderId,
+      scheduleVersion: 1,
     });
 
     // Verify sensitive keys are NOT leaked to Redis
@@ -307,7 +308,7 @@ describe('BullMQ Queue & Worker Architecture Tests', () => {
       },
     });
 
-    const jobId = `email:${emailJob.id}`;
+    const jobId = `email-${emailJob.id}`;
     await emailSchedulerService.scheduleEmailJob(emailJob.id);
 
     // Simulate stopping the API connection (closing the queue handler)
@@ -351,7 +352,7 @@ describe('BullMQ Queue & Worker Architecture Tests', () => {
       },
     });
 
-    const jobId = `email:${emailJob.id}`;
+    const jobId = `email-${emailJob.id}`;
 
     // Reconciliation 1: Adds job because it doesn't exist
     const res1 = await emailSchedulerService.ensureEmailJobScheduled(emailJob.id);

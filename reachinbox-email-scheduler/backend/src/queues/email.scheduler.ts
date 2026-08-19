@@ -5,7 +5,7 @@ import { ApiError } from '../utils/apiError.js';
 import { logger } from '../config/logger.js';
 
 function getExecutionJobId(emailJobId: string, scheduleVersion: number): string {
-  return scheduleVersion === 1 ? `email:${emailJobId}` : `email:${emailJobId}:v${scheduleVersion}`;
+  return scheduleVersion === 1 ? `email-${emailJobId}` : `email-${emailJobId}-v${scheduleVersion}`;
 }
 
 export const emailSchedulerService = {

@@ -263,7 +263,7 @@ describe('Distributed Rate Limiting & Throttling Integration Tests', () => {
         scheduleVersion: 1, // Stale!
       },
       {
-        jobId: `email:${emailJob.id}:v1`,
+        jobId: `email-${emailJob.id}-v1`,
       }
     );
 
