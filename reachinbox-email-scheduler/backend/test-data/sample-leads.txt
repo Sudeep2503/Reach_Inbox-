@@ -1,0 +1,6 @@
+john@example.com
+JANE@EXAMPLE.COM
+john@example.com
+not-an-email-address
+alice@example.com;bob@example.com
+"quotes@example.com",alice@example.com

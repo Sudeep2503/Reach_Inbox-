@@ -1,0 +1,9 @@
+name,email
+John Doe,john@example.com
+Jane Doe,JANE@EXAMPLE.COM
+Duplicate User,john@example.com
+Invalid Email,not-an-email-address
+Alice Smith,alice@example.com
+Bob Jones,bob@example.com
+Surrounding Quotes,"quotes@example.com"
+Another Duplicate,alice@example.com

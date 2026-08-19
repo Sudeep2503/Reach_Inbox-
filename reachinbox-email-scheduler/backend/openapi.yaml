@@ -1,0 +1,679 @@
+openapi: 3.0.3
+info:
+  title: ReachInbox Email Scheduler API
+  description: Production-grade REST API architecture for managing users, senders, campaigns, and email jobs.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+    description: Local Development Server
+paths:
+  /health:
+    get:
+      summary: Get system health status
+      description: Returns health status of API, PostgreSQL, and Redis.
+      responses:
+        '200':
+          description: System is healthy or degraded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: healthy
+                      services:
+                        type: object
+                        properties:
+                          api:
+                            type: string
+                            example: up
+                          database:
+                            type: string
+                            example: connected
+                          redis:
+                            type: string
+                            example: connected
+                      timestamp:
+                        type: string
+                        format: date-time
+                        example: '2026-08-19T11:00:00.000Z'
+
+  /users/{id}:
+    get:
+      summary: Get user details (Dev only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User record retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: 'e012e84d-2bb0-4d57-8ea3-3c97dbceb0e5'
+                      email:
+                        type: string
+                        example: 'user@example.com'
+                      name:
+                        type: string
+                        example: 'John Doe'
+                      avatarUrl:
+                        type: string
+                        nullable: true
+                        example: null
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '404':
+          description: User not found
+
+  /users/{id}/senders:
+    get:
+      summary: Get all senders belonging to a user (Dev only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of senders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SenderSafe'
+
+  /users/{id}/campaigns:
+    get:
+      summary: Get all campaigns belonging to a user (Dev only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Campaign'
+
+  /senders:
+    get:
+      summary: List all senders for a user
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of user senders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SenderSafe'
+    post:
+      summary: Create a new sender configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - email
+                - displayName
+                - smtpHost
+                - smtpPort
+                - smtpUser
+                - smtpPassword
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+                  format: email
+                displayName:
+                  type: string
+                smtpHost:
+                  type: string
+                smtpPort:
+                  type: integer
+                smtpUser:
+                  type: string
+                smtpPassword:
+                  type: string
+                hourlyLimit:
+                  type: integer
+                  default: 200
+                isActive:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Sender created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SenderSafe'
+        '409':
+          description: Sender email already registered for this user
+
+  /senders/{id}:
+    get:
+      summary: Get a specific sender by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Sender retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SenderSafe'
+        '404':
+          description: Sender not found
+    patch:
+      summary: Update a sender configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                displayName:
+                  type: string
+                smtpHost:
+                  type: string
+                smtpPort:
+                  type: integer
+                smtpUser:
+                  type: string
+                smtpPassword:
+                  type: string
+                hourlyLimit:
+                  type: integer
+                isActive:
+                  type: boolean
+              additionalProperties: false
+      responses:
+        '200':
+          description: Sender updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SenderSafe'
+        '404':
+          description: Sender not found
+
+  /campaigns:
+    get:
+      summary: List all campaigns
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Campaign'
+
+  /campaigns/{id}:
+    get:
+      summary: Get specific campaign details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Campaign record retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Campaign'
+        '404':
+          description: Campaign not found
+
+  /campaigns/{id}/emails:
+    get:
+      summary: Get paginated email jobs for a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: senderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SCHEDULED, PROCESSING, SENT, FAILED, CANCELLED]
+      responses:
+        '200':
+          description: Paginated collection of email jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEmailJobs'
+        '404':
+          description: Campaign not found
+
+  /campaigns/{id}/stats:
+    get:
+      summary: Get statistics for a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Campaign stats payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      totalRecipients:
+                        type: integer
+                        example: 10
+                      scheduledCount:
+                        type: integer
+                        example: 7
+                      sentCount:
+                        type: integer
+                        example: 2
+                      failedCount:
+                        type: integer
+                        example: 1
+        '404':
+          description: Campaign not found
+
+  /email-jobs/scheduled:
+    get:
+      summary: Get paginated scheduled email jobs
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: senderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SCHEDULED, PROCESSING]
+      responses:
+        '200':
+          description: Paginated scheduled email jobs sorted by scheduledAt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEmailJobs'
+
+  /email-jobs/sent:
+    get:
+      summary: Get paginated sent/failed email jobs
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: senderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SENT, FAILED]
+      responses:
+        '200':
+          description: Paginated sent email jobs sorted by sentAt/updatedAt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEmailJobs'
+
+  /email-jobs/{id}:
+    get:
+      summary: Get details of a specific email job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Email job retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/EmailJob'
+        '404':
+          description: Email job not found
+
+components:
+  schemas:
+    SenderSafe:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+        smtpHost:
+          type: string
+        smtpPort:
+          type: integer
+        smtpUser:
+          type: string
+        hourlyLimit:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      description: Sender configurations excluding sensitive SMTP passwords.
+
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        body:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        delayMs:
+          type: integer
+        hourlyLimit:
+          type: integer
+        status:
+          type: string
+          enum: [DRAFT, SCHEDULED, RUNNING, COMPLETED, PARTIALLY_FAILED, FAILED, CANCELLED]
+        totalRecipients:
+          type: integer
+        scheduledCount:
+          type: integer
+        sentCount:
+          type: integer
+        failedCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    EmailJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        campaignId:
+          type: string
+          format: uuid
+        senderId:
+          type: string
+          format: uuid
+        recipient:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [SCHEDULED, PROCESSING, SENT, FAILED, CANCELLED]
+        attempts:
+          type: integer
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastAttemptAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedEmailJobs:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmailJob'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              example: 5
+            totalPages:
+              type: integer
+              example: 1
